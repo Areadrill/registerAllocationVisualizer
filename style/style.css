@@ -1,0 +1,19 @@
+#graph{
+  width: 45em;
+  height: 45em;
+  border: 1px solid black;
+}
+
+.stack1{
+  background-color: #45b2a9;
+}
+
+#stack{
+  max-height: 45em;
+  overflow-y: scroll;
+}
+
+#messages{
+  max-height: 45em;
+  overflow-y: scroll;
+}

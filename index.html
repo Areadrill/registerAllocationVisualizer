@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="js/jquery-3.2.1.min.js"></script>
+  <script src="js/bootstrap.min.js"></script>
+  <script src="js/vis.js"></script>
+  <script src="js/registerAllocation.js"></script>
+  <link rel="stylesheet" href="style/bootstrap.min.css">
+  <link rel="stylesheet" href="style/vis-network.min.css">
+  <link rel="stylesheet" href="style/style.css">
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-3"></div>
+      <div class="col-md-4">
+        <h1> Register Allocation Visualizer </h1>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-3">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            Messages
+          </div>
+          <div id="messages" class="panel-body">
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div id="graph"></div>
+      </div>
+      <div class="col-md-1">
+        <ul id="stack" class="list-group">
+
+        </ul>
+      </div>
+      <div class="col-md-4">
+        <input type="file" name="dotFile" id="dotFile">
+        <label for="k"> K <input name="k" id="k" type="text" value=3> </label>
+        <br>
+        <div class="row">
+          <div class="col-md-4">
+            <input name="speed" id="speed" max="10" min="1" type="range">
+          </div>
+          <div>
+            <p id="speedVal">lol</p>
+          </div>
+        </div>
+        <br>
+        <div class="row">
+          <button id="stepBtn" class="btn btn-primary btn-sm">Step</button>
+          <button id="playBtn" class="btn btn-success btn-sm">Run</button>
+          <button id="resetBtn" class="btn btn-danger btn-sm">Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

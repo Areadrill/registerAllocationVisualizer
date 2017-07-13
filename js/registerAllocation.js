@@ -2,16 +2,22 @@ $().ready(function(){
 
   let dot = 'digraph {v0 -- v1; v2 -- v7; v2 -- v5 --  v6 -- v2; v2 -- v3 -- v4 -- v2; v8 -- v9; v10 }';
   network = loadGraph(dot);
-  //step();
+
+  logMessage("Default graph loaded.");
+
   let speed = $("#speed").val();
   $("#speedVal").text(speed);
 
   $("#resetBtn").click(function(){
+    logMessage("Reset algorithm");
     reset();
   });
 
   $("#playBtn").click(function(){
     playing = !playing;
+    if(playing){
+      logMessage("Steps running automatically");
+    }
     $("#playBtn").text((playing)?"Stop":"Run");
     play();
   });
@@ -28,6 +34,7 @@ $().ready(function(){
     }
     else{
       console.error("Please provide a dot file");
+      logMessage("The provided file is not a .dot file. Please provide a .dot file.");
     }
   });
 
@@ -158,7 +165,7 @@ function step(){
             maxIndegree = inDeg
             maxId = el.id
           }
-          console.log("k: " + $("#k").val());
+          //console.log("k: " + $("#k").val());
           if(stack.indexOf(el.id) === -1 && inDeg < $("#k").val()){
             addToStack(el.id);
             throw {name: "Step Done", level: "Show stopper", message: "Step is done"}
@@ -166,7 +173,7 @@ function step(){
         });
       }
       catch(done){
-        console.log("Step done");
+        //console.log("Step done");
         needSpill = false;
       }
 
@@ -180,15 +187,18 @@ function step(){
       colours = getNeighboringColors(node);
       let cnt = 0;
       for(c in colors){
+        //console.log(node + " " + cnt);
         if(colours.indexOf(c) === -1){
           setColor(node, c);
           solidifyEdgeNodes(node);
           break;
         }
-        else{
-          if(cnt++ === $("#k").val() && node.maySpill){
-            return;
-          }
+        ////console.log(cnt+1);
+        ////console.log($("#k").val());
+        //console.log(nodes.get(node).maySpill);
+        if(++cnt == $("#k").val() && nodes.get(node).maySpill){
+          logMessage(node + " spilled");
+          return;
         }
       }
       if(stack.length == 0){
@@ -325,4 +335,8 @@ function loadGraph(dot){
   graph =  new vis.Network(container, data, options);
   nodes = data.nodes;
   edges = data.edges;
+}
+
+function logMessage(txt){
+  $("#messages").append("<br><p>"+txt+"</p>");
 }

@@ -14,6 +14,7 @@
 }
 
 #messages{
+  height: 42em;
   max-height: 45em;
   overflow-y: scroll;
 }

@@ -1,1 +1,1 @@
-digraph {v0 -- v1 }
+digraph {v0 -- v1; v1 -- v2 [dashes=true, color=black]  }

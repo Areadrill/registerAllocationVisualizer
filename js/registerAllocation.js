@@ -3,7 +3,12 @@ $().ready(function(){
   let dot = 'digraph {v0 -- v1; v2 -- v7; v2 -- v5 --  v6 -- v2; v2 -- v3 -- v4 -- v2; v8 -- v9; v10 }';
   network = loadGraph(dot);
 
+  //let temporaryDot = 'digraph {b -- c; b -- d; b -- e; b -- m; b -- k; c -- m; d -- m; d -- k; d -- j; e -- m; e -- f; e -- j; f -- m; f -- j; g -- k; g -- h; g -- j; h -- j; j -- k; j -- b [dashes=true, color=black]; d -- c [dashes=true, color=black]}';
+  //network = loadGraph(temporaryDot);
   logMessage("Default graph loaded.");
+
+  console.log(interferences);
+
 
   let speed = $("#speed").val();
   $("#speedVal").text(speed);
@@ -46,6 +51,7 @@ $().ready(function(){
 let nodes;
 let edges;
 let graph;
+let interferences;
 let stack = [];
 let mode = "stackAdd";
 let playing = false;
@@ -159,18 +165,25 @@ function step(){
       let maxIndegree = 0;
       let maxId = "";
       try{
+        //simplify
         nodes.forEach(function(el){
           inDeg = getIndegree(el.id);
           if(inDeg > maxIndegree){
             maxIndegree = inDeg
             maxId = el.id
           }
-          //console.log("k: " + $("#k").val());
-          if(stack.indexOf(el.id) === -1 && inDeg < $("#k").val()){
+          console.log("k: " + $("#k").val());
+          if(stack.indexOf(el.id) === -1 && inDeg < $("#k").val() && !isMoveRelated(el.id)){
+            console.log("lol");
             addToStack(el.id);
             throw {name: "Step Done", level: "Show stopper", message: "Step is done"}
           }
         });
+
+        //coalesce
+
+
+        //freeze
       }
       catch(done){
         //console.log("Step done");
@@ -238,6 +251,8 @@ function addToStack(id, spill=false){
       edges.update({id: el.id, from: el.from, to: el.to, dashes: true});
     }
   });
+
+ 
   if(!spill){
     nodes.update({id: id, label: id, shapeProperties: {borderDashes: [5, 5]}})
     $("#stack").prepend("<li class=\"list-group-item\">" + id + "</li>");
@@ -248,6 +263,21 @@ function addToStack(id, spill=false){
   }
   stack.push(id);
   return true;
+}
+
+function isMoveRelated(id){
+  try{
+    edges.forEach(function(el){
+      //console.log(el.color);
+      if((el.to === id || el.from === id) && el.color){
+        throw {name: "Is move-related", level: "Show stopper", message: "Node is move-related"}
+      }
+    });
+    return false;
+  }
+  catch(e){
+    return true;
+  }
 }
 
 function resetStack(){
@@ -311,6 +341,24 @@ function getIndegree(id){
   return deg;
 }
 
+function getConnections(){
+  edges.forEach(function(el){
+    if(interferences[el.to] === undefined){
+      interferences[el.to] = [el.from];
+    }
+    else{ 
+      interferences[el.to].push(el.from);
+    }
+
+    if(interferences[el.from] === undefined){
+      interferences[el.from] = [el.to];
+    }
+    else{
+      interferences[el.from].push(el.to);
+    }
+  });
+}
+
 function checkFileExtension(path){
   return path.split(".")[1] === "dot";
 }
@@ -335,6 +383,8 @@ function loadGraph(dot){
   graph =  new vis.Network(container, data, options);
   nodes = data.nodes;
   edges = data.edges;
+  interferences = [];
+  getConnections();
 }
 
 function logMessage(txt){

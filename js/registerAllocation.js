@@ -7,8 +7,6 @@ $().ready(function(){
   //network = loadGraph(temporaryDot);
   logMessage("Default graph loaded.");
 
-  console.log(interferences);
-
 
   let speed = $("#speed").val();
   $("#speedVal").text(speed);
@@ -174,9 +172,8 @@ function step(){
           }
           console.log("k: " + $("#k").val());
           if(stack.indexOf(el.id) === -1 && inDeg < $("#k").val() && !isMoveRelated(el.id)){
-            console.log("lol");
             addToStack(el.id);
-            throw {name: "Step Done", level: "Show stopper", message: "Step is done"}
+            throw {name: "Step Done", level: "Show stopper", message: "Step is done"};
           }
         });
 
@@ -231,7 +228,7 @@ function checkStackAddDone(){
   try{
     nodes.forEach(function(el){
       if(stack.indexOf(el.id) === -1){
-        throw {name: "Step Done", level: "Show stopper", message: "Step is done"}
+      throw {name: "Step Done", level: "Show stopper", message: "Step is done"}
       }
     })
   }
@@ -341,21 +338,98 @@ function getIndegree(id){
   return deg;
 }
 
-function getConnections(){
-  edges.forEach(function(el){
-    if(interferences[el.to] === undefined){
-      interferences[el.to] = [el.from];
+function getCoalescingOption(){
+  try{
+    nodes.forEach(function(el){
+      if(stack.indexOf(el.id) === -1){
+        nodes.forEach(function(el2){
+          if(el2.id === el.id || stack.indexOf(el2.id) !== -1 || $.grep(interferences[el.id], function(e){return e.id === el2.id}).length !== 0 ){
+            return;
+          }
+          //console.log(el.id + " " + el2.id + " are potentially coalescable");
+
+          if(isCoalescable(el.id, el2.id)){
+            throw {name: "Found option", level: "Show stopper", message:el.id + " " + el2.id};
+          }
+        });
+      }
+    });
+  }
+  catch(e){
+    return e.message.split(" ");
+  }
+}
+
+function isCoalescable(id1, id2){
+  let simulatedEdges = simulateIndegree(id1, id2);
+
+  if($("input[name='coalescingOpt']:checked").val() === "Briggs"){
+    return isBriggsCoalescable(simulatedEdges.length);
+  }
+  else{
+    return isGeorgeCoalescable(simulatedEdges);
     }
-    else{ 
-      interferences[el.to].push(el.from);
+}
+
+function isBriggsCoalescable(inDeg){
+  return inDeg < $("#k").val();
+}
+
+function isGeorgeCoalescable(id1, id2){
+  neighborsInterfere = true;
+  lowDegreeNeighbors = true;
+  for(let i = 0; i < interferences[id1]; i++){
+    if(!neighborsInterfere && !lowDegreeNeighbors){
+      return false;
     }
 
-    if(interferences[el.from] === undefined){
-      interferences[el.from] = [el.to];
+    if(neighborsInterfere && $.grep(interferences[interferences[id1][i].id], function(e){ e.id === id2}).length === 0){
+      neighborsInterfere = false;
     }
-    else{
-      interferences[el.from].push(el.to);
+    if(getIndegree(lowDegreeNeighbors && interferences[id1][i].id) >= $("#k").val()){
+      lowDegreeNeighbors = false;
     }
+  }
+
+  for(let i = 0; i < interferences[id2]; i++){
+    if(!neighborsInterfere && !lowDegreeNeighbors){
+      return false;
+    }
+
+    if(neighborsInterfere && $.grep(interferences[interferences[id2][i].id], function(e){ e.id === id1}).length === 0){
+      neighborsInterfere = false;
+    }
+    if(getIndegree(lowDegreeNeighbors && interferences[id2][i].id) >= $("#k").val()){
+      lowDegreeNeighbors = false;
+    }
+  }
+
+  return neighborsInterfere || lowDegreeNeighbors;
+}
+
+function simulateIndegree(id1, id2){
+  let inDeg = [];
+  for(let i = 0; i < interferences[id1].length; i++){
+    if(stack.indexOf(interferences[id1][i].id) === -1){
+      inDeg.push(interferences[id1][i].id);
+    }
+  }
+
+  for(let j = 0; j < interferences[id2].length; j++){
+    if(inDeg.indexOf(interferences[id2][j].id) === -1 && stack.indexOf(interferences[id2][j].id) === -1){
+      inDeg.push(interferences[id2][j].id)
+    } 
+  }
+  return inDeg;
+}
+
+function getConnections(){
+  nodes.forEach(function(el){
+    interferences[el.id] = [];
+  });
+  edges.forEach(function(el){
+    interferences[el.to].push(el.color?{"id": el.from, "move-related": true}:{"id": el.from});
+    interferences[el.from].push(el.color?{"id": el.to, "move-related": true}:{"id": el.to});
   });
 }
 

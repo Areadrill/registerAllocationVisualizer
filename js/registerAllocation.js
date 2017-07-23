@@ -1,6 +1,5 @@
+let dot = 'digraph {v0 -- v1; v2 -- v7; v2 -- v5 -- v6 -- v2; v2 -- v3 -- v4 -- v2; v8 -- v9; v10 }';
 $().ready(function(){
-
-  let dot = 'digraph {v0 -- v1; v2 -- v7; v2 -- v5 -- v6 -- v2; v2 -- v3 -- v4 -- v2; v8 -- v9; v10 }';
   network = loadGraph(dot);
 
   let temporaryDot = 'digraph {b -- c; b -- d; b -- e; b -- m; b -- k; c -- m; d -- m; d -- k; d -- j; e -- m; e -- f; e -- j; f -- m; f -- j; g -- k; g -- h; g -- j; h -- j; j -- k; j -- b [dashes=true, color=black]; d -- c [dashes=true, color=black]}';
@@ -31,7 +30,6 @@ $().ready(function(){
   $("#dotFile").change(function(){
     const fInput = $("#dotFile"); //should only be one
     if(checkFileExtension(fInput.val())){
-      processFile(fInput[0].files[0]);
       reset();
     }
     else{
@@ -63,6 +61,12 @@ function play(){
 function reset(){
   resetStack();
   mode="stackAdd";
+  if($("#dotFile").val() === ""){
+   network = loadGraph(dot); 
+  }
+  else if(checkFileExtension($("#dotFile").val())){
+    processFile($("#dotFile")[0].files[0]);
+  }
   playing = false;
   $("#playBtn").text("Run");
 }
@@ -277,9 +281,18 @@ function coalesce(id1, id2){
       edges.remove({id: el.id});
     }
   });
-  for(let i = 0; i < simEdges.length; i++){
-    edges.add({id: id1 + "-" + id2 + "--" + simEdges[i], from: id1 + "-" + id2, to: simEdges[i], arrows: undefined});
+  
+  for(let i = 0; i < simEdges.interferences.length; i++){
+    console.log(i + "/" + simEdges.interferences.length + " - " + simEdges.interferences[i]);
+    if(stack.indexOf(simEdges.interferences[i]) === -1){
+      edges.add({id: id1 + "-" + id2 + "--" + simEdges.interferences[i], from: id1 + "-" + id2, to: simEdges.interferences[i], arrows: undefined});
+    }
+    else{
+      edges.add({id: id1 + "-" + id2 + "--" + simEdges.interferences[i], from: id1 + "-" + id2, to: simEdges.interferences[i], arrows: undefined, dashes: true});
+    }
   }
+  console.log(simEdges.interferences);
+  console.log(edges);
   getConnections();
 }
 
@@ -363,12 +376,12 @@ function getCoalescingOption(){
   try{
     edges.forEach(function(el){
       if(el.dashes && el.color){
+        //console.log("Considering " + el.from + " and " + el.to);
          if(isCoalescable(el.from, el.to)){
           throw {name: "Found option", level: "Show stopper", message:el.from + " " + el.to};
         }
       }
     });
-   
   }
   catch(e){
     return e.message.split(" ");
@@ -379,11 +392,11 @@ function isCoalescable(id1, id2){
   let simulatedEdges = simulateIndegree(id1, id2);
 
   if($("input[name='coalescingOpt']:checked").val() === "Briggs"){
-    return isBriggsCoalescable(simulatedEdges.length);
+    return isBriggsCoalescable(simulatedEdges.inDegree);
   }
   else{
     return isGeorgeCoalescable(id1, id2);
-    }
+  }
 }
 
 function isBriggsCoalescable(inDeg){
@@ -423,19 +436,30 @@ function isGeorgeCoalescable(id1, id2){
 }
 
 function simulateIndegree(id1, id2){
-  let inDeg = [];
+  let inDeg = 0;
+  let interferingNodes = [];
   for(let i = 0; i < interferences[id1].length; i++){
-    if(stack.indexOf(interferences[id1][i].id) === -1){
-      inDeg.push(interferences[id1][i].id);
+    if(interferences[id1][i].id !== id1 && interferences[id1][i].id !== id2){
+      if(stack.indexOf(interferences[id1][i].id) === -1 && !interferences[id1][i].moveRelated){
+        inDeg++
+      }
+      interferingNodes.push(interferences[id1][i].id);
     }
   }
 
   for(let j = 0; j < interferences[id2].length; j++){
-    if(inDeg.indexOf(interferences[id2][j].id) === -1 && stack.indexOf(interferences[id2][j].id) === -1){
-      inDeg.push(interferences[id2][j].id)
+    if(interferences[id2][j].id !== id1 && interferences[id2][j].id !== id2){
+      if(interferingNodes.indexOf(interferences[id2][j].id) === -1 && stack.indexOf(interferences[id2][j].id) === -1 && !interferences[id1][j].moveRelated){
+        inDeg++;
+      }
+      if(interferingNodes.indexOf(interferences[id2][j].id) === -1){
+        interferingNodes.push(interferences[id2][j].id);
+      }
+      
     } 
   }
-  return inDeg;
+  //console.log(interferingNodes);
+  return {inDegree: inDeg, interferences: interferingNodes};
 }
 
 function getConnections(){

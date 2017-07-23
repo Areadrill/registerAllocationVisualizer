@@ -1,9 +1,6 @@
 let dot = 'digraph {v0 -- v1; v2 -- v7; v2 -- v5 -- v6 -- v2; v2 -- v3 -- v4 -- v2; v8 -- v9; v10 }';
 $().ready(function(){
   network = loadGraph(dot);
-
-  let temporaryDot = 'digraph {b -- c; b -- d; b -- e; b -- m; b -- k; c -- m; d -- m; d -- k; d -- j; e -- m; e -- f; e -- j; f -- m; f -- j; g -- k; g -- h; g -- j; h -- j; j -- k; j -- b [dashes=true, color=black]; d -- c [dashes=true, color=black]}';
-  network = loadGraph(temporaryDot);
   logMessage("Default graph loaded.");
 
   let speed = $("#speed").val();

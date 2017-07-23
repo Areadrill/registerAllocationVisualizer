@@ -1,12 +1,11 @@
 $().ready(function(){
 
-  let dot = 'digraph {v0 -- v1; v2 -- v7; v2 -- v5 --  v6 -- v2; v2 -- v3 -- v4 -- v2; v8 -- v9; v10 }';
+  let dot = 'digraph {v0 -- v1; v2 -- v7; v2 -- v5 -- v6 -- v2; v2 -- v3 -- v4 -- v2; v8 -- v9; v10 }';
   network = loadGraph(dot);
 
-  //let temporaryDot = 'digraph {b -- c; b -- d; b -- e; b -- m; b -- k; c -- m; d -- m; d -- k; d -- j; e -- m; e -- f; e -- j; f -- m; f -- j; g -- k; g -- h; g -- j; h -- j; j -- k; j -- b [dashes=true, color=black]; d -- c [dashes=true, color=black]}';
-  //network = loadGraph(temporaryDot);
+  let temporaryDot = 'digraph {b -- c; b -- d; b -- e; b -- m; b -- k; c -- m; d -- m; d -- k; d -- j; e -- m; e -- f; e -- j; f -- m; f -- j; g -- k; g -- h; g -- j; h -- j; j -- k; j -- b [dashes=true, color=black]; d -- c [dashes=true, color=black]}';
+  network = loadGraph(temporaryDot);
   logMessage("Default graph loaded.");
-
 
   let speed = $("#speed").val();
   $("#speedVal").text(speed);
@@ -170,7 +169,7 @@ function step(){
             maxIndegree = inDeg
             maxId = el.id
           }
-          console.log("k: " + $("#k").val());
+          //console.log("k: " + $("#k").val());
           if(stack.indexOf(el.id) === -1 && inDeg < $("#k").val() && !isMoveRelated(el.id)){
             addToStack(el.id);
             throw {name: "Step Done", level: "Show stopper", message: "Step is done"};
@@ -178,9 +177,14 @@ function step(){
         });
 
         //coalesce
-
+        let coalescingNodes = getCoalescingOption();
+        if(coalescingNodes){
+          coalesce(coalescingNodes[0], coalescingNodes[1]);
+          throw {name: "Step Done", level: "Show stopper", message: "Step is done"};
+        } 
 
         //freeze
+
       }
       catch(done){
         //console.log("Step done");
@@ -262,6 +266,23 @@ function addToStack(id, spill=false){
   return true;
 }
 
+function coalesce(id1, id2){
+  const simEdges = simulateIndegree(id1, id2);
+  nodes.remove({id: id1});
+  nodes.remove({id: id2});
+  nodes.add({id: id1 + "-" + id2, label: id1 + "-" + id2});
+
+  edges.forEach(function(el){
+    if(el.to === id1 || el.to === id2 || el.from === id1 || el.from === id2){
+      edges.remove({id: el.id});
+    }
+  });
+  for(let i = 0; i < simEdges.length; i++){
+    edges.add({id: id1 + "-" + id2 + "--" + simEdges[i], from: id1 + "-" + id2, to: simEdges[i], arrows: undefined});
+  }
+  getConnections();
+}
+
 function isMoveRelated(id){
   try{
     edges.forEach(function(el){
@@ -340,20 +361,14 @@ function getIndegree(id){
 
 function getCoalescingOption(){
   try{
-    nodes.forEach(function(el){
-      if(stack.indexOf(el.id) === -1){
-        nodes.forEach(function(el2){
-          if(el2.id === el.id || stack.indexOf(el2.id) !== -1 || $.grep(interferences[el.id], function(e){return e.id === el2.id}).length !== 0 ){
-            return;
-          }
-          //console.log(el.id + " " + el2.id + " are potentially coalescable");
-
-          if(isCoalescable(el.id, el2.id)){
-            throw {name: "Found option", level: "Show stopper", message:el.id + " " + el2.id};
-          }
-        });
+    edges.forEach(function(el){
+      if(el.dashes && el.color){
+         if(isCoalescable(el.from, el.to)){
+          throw {name: "Found option", level: "Show stopper", message:el.from + " " + el.to};
+        }
       }
     });
+   
   }
   catch(e){
     return e.message.split(" ");
@@ -367,7 +382,7 @@ function isCoalescable(id1, id2){
     return isBriggsCoalescable(simulatedEdges.length);
   }
   else{
-    return isGeorgeCoalescable(simulatedEdges);
+    return isGeorgeCoalescable(id1, id2);
     }
 }
 
@@ -383,7 +398,7 @@ function isGeorgeCoalescable(id1, id2){
       return false;
     }
 
-    if(neighborsInterfere && $.grep(interferences[interferences[id1][i].id], function(e){ e.id === id2}).length === 0){
+    if(neighborsInterfere && $.grep(interferences[interferences[id1][i].id], function(e){e.id === id2}).length === 0){
       neighborsInterfere = false;
     }
     if(getIndegree(lowDegreeNeighbors && interferences[id1][i].id) >= $("#k").val()){
@@ -424,12 +439,14 @@ function simulateIndegree(id1, id2){
 }
 
 function getConnections(){
+  interferences = [];
   nodes.forEach(function(el){
     interferences[el.id] = [];
   });
-  edges.forEach(function(el){
-    interferences[el.to].push(el.color?{"id": el.from, "move-related": true}:{"id": el.from});
-    interferences[el.from].push(el.color?{"id": el.to, "move-related": true}:{"id": el.to});
+  
+  edges.forEach(function(el){  
+    interferences[el.to].push(el.color?{"id": el.from, "moveRelated": true}:{"id": el.from});
+    interferences[el.from].push(el.color?{"id": el.to, "moveRelated": true}:{"id": el.to});
   });
 }
 
@@ -457,7 +474,6 @@ function loadGraph(dot){
   graph =  new vis.Network(container, data, options);
   nodes = data.nodes;
   edges = data.edges;
-  interferences = [];
   getConnections();
 }
 

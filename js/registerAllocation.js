@@ -169,7 +169,7 @@ function step(){
         //simplify
         nodes.forEach(function(el){
           inDeg = getIndegree(el.id);
-          if(inDeg > maxIndegree){
+          if(inDeg > maxIndegree && !isMoveRelated(el.id)){
             maxIndegree = inDeg
             maxId = el.id
           }
@@ -188,6 +188,12 @@ function step(){
         } 
 
         //freeze
+        let freezeEdge = getFreezeOption();
+        if(freezeEdge){
+          logMessage("Froze move " + edges.get(freezeEdge).from + " - " + edges.get(freezeEdge).to);
+          edges.remove(freezeEdge);
+          throw {name: "Step Done", level: "Show stopper", message: "Step is done"};
+        }
 
       }
       catch(done){
@@ -211,9 +217,6 @@ function step(){
           solidifyEdgeNodes(node);
           break;
         }
-        ////console.log(cnt+1);
-        ////console.log($("#k").val());
-        //console.log(nodes.get(node).maySpill);
         if(++cnt == $("#k").val() && nodes.get(node).maySpill){
           logMessage(node + " spilled");
           return;
@@ -372,11 +375,27 @@ function getIndegree(id){
   return deg;
 }
 
+function getFreezeOption(){
+  try{
+    edges.forEach(function(el){
+      if(el.dashes && el.color){
+        let k = $("#k").val();
+        if(getIndegree(el.from) < k || getIndegree(el.to) < k){
+          throw {name: "Found option", level: "Show stopper", message:el.id};
+        }
+      }
+    });
+  }
+  catch(e){
+    return e.message;
+  }
+}
+
 function getCoalescingOption(){
   try{
     edges.forEach(function(el){
       if(el.dashes && el.color){
-        //console.log("Considering " + el.from + " and " + el.to);
+        console.log("Considering " + el.from + " and " + el.to);
          if(isCoalescable(el.from, el.to)){
           throw {name: "Found option", level: "Show stopper", message:el.from + " " + el.to};
         }
